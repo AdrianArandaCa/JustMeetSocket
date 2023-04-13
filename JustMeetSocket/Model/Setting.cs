@@ -7,7 +7,8 @@
         public int minAge { get; set; }
         public int maxAge { get; set; }
         public string genre { get; set; }
-        public GameType gameType { get; set; }
+        public int? idGameType { get; set; }
+        public GameType IdGametypeNavigation { get; set; }
 
     }
 }

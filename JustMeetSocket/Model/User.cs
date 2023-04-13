@@ -13,9 +13,10 @@ namespace JustMeetSocket.Model
         public string photo { get; set; }
         public string description { get; set; }
         public bool premium { get; set; }
+        public int? idSetting { get; set; }
         public WebSocket socket { get; set; }
-        public Setting setting { get; set; }
-        public Location location { get; set; }
+        public Setting IdSettingNavigation { get; set; }
+        public Location locations { get; set; }
 
 
     }

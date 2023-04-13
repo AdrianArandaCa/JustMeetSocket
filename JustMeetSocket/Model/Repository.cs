@@ -23,13 +23,19 @@ namespace JustMeetSocket.Model
             return user;
         }
 
+        public User PostUser(User user)
+        {
+            User userPost = (User)MakeRequest(string.Concat(ws, "user/"),
+                user, "POST", "application/json", typeof(User));
+            return userPost;
+        }
         public List<Question> GetQuestions()
         {
             List<Question> questions = null;
             questions = (List<Question>)MakeRequest(string.Concat(ws, "questions"), null, "GET", "application/json", typeof(List<Question>));
             for (var i = 0; i < questions.Count; i++)
             {
-                questions[i].answers = (List<Answer>)MakeRequest(string.Concat(ws, "questionWithAnswer/", questions[i].idQuestion), null, "GET", "application/json", typeof(List<Answer>));
+                questions[i].answers = GetAnswersFromQuestion(questions[i].idQuestion);
             }
             return questions;
         }
@@ -38,24 +44,41 @@ namespace JustMeetSocket.Model
         {
             List<Question> questions = null;
             questions = (List<Question>)MakeRequest(string.Concat(ws, "questions"), null, "GET", "application/json", typeof(List<Question>));
-            questions = questions.Where(a => a.gameType.idGameType == gameType.idGameType).OrderBy(a => random.Next()).Take(5).ToList();
+            questions = questions.Where(a => a.idGameType == gameType.idGameType).OrderBy(a => random.Next()).Take(5).ToList();
             for (var i = 0; i < questions.Count; i++)
             {
-                questions[i].answers = (List<Answer>)MakeRequest(string.Concat(ws, "questionWithAnswer/", questions[i].idQuestion), null, "GET", "application/json", typeof(List<Answer>));
+                questions[i].answers = GetAnswersFromQuestion(questions[i].idQuestion);
             }
             return questions;
         }
 
+        public List<Answer> GetAnswersFromQuestion(int id) 
+        {
+            List<Answer> answers = null;
+            answers = (List<Answer>)MakeRequest(string.Concat(ws, "questionWithAnswer/", id), null, "GET", "application/json", typeof(List<Answer>));
+            return answers;
+        }
+
+        public Setting GetSetting(int id) 
+        {
+            Setting setting = null;
+            setting = (Setting)MakeRequest(string.Concat(ws, "setting/", id), null, "GET", "application/json", typeof(Setting));
+            //setting.gameType = GetGameTypeFromSetting((int)setting.idGameType);
+            return setting;
+        }
+
+        public GameType GetGameTypeFromSetting(int id)
+        {
+            GameType gameType = null;
+            gameType = (GameType)MakeRequest(string.Concat(ws, "gameType/", id), null, "GET", "application/json", typeof(GameType));
+            return gameType;
+        }
+
         public static object MakeRequest(string requestUrl, object JSONRequest, string JSONmethod, string JSONContentType, Type JSONResponseType)
-        //  requestUrl: Url completa del Web Service, amb l'opció sol·licitada
-        //  JSONrequest: objecte que se li passa en el body 
-        //  JSONmethod: "GET"/"POST"/"PUT"/"DELETE"
-        //  JSONContentType: "application/json" en els casos que el Web Service torni objectes
-        //  JSONRensponseType:  tipus d'objecte que torna el Web Service (typeof(tipus))
         {
             try
             {
-                HttpWebRequest request = WebRequest.Create(requestUrl) as HttpWebRequest; //WebRequest WR = WebRequest.Create(requestUrl);   
+                HttpWebRequest request = WebRequest.Create(requestUrl) as HttpWebRequest;
                 string sb = JsonConvert.SerializeObject(JSONRequest);
                 request.Method = JSONmethod;  // "GET"/"POST"/"PUT"/"DELETE";  
 
