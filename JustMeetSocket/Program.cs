@@ -35,7 +35,7 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
                 usersConnected++;
                 if (usersConnected == 1) 
                 {
-                    gameType = user.IdSettingNavigation.IdGametypeNavigation;
+                    gameType = user.idSettingNavigation.IdGametypeNavigation;
                 }
             }
 
@@ -52,7 +52,7 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
                 foreach (User u in users) 
                 {
                     rcvBufferName = Encoding.UTF8.GetBytes(jsonQuestion);
-                    await u.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None)
+                    await u.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
                 }
             }
             
