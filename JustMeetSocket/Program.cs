@@ -8,7 +8,7 @@ using JsonSerializer = System.Text.Json.JsonSerializer;
 
 Console.Title = "JustMeetWebSocket";
 var builder = WebApplication.CreateBuilder();
-int maxUsersConnected = 1;
+int maxUsersConnected = 2;
 int minUsersConnected = 1;
 int usersConnected = 0;
 
@@ -47,10 +47,19 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
 
             if (usersConnected == maxUsersConnected)
             {
+
                 questions = repository.GetQuestionsByGameType(gameType);
                 string jsonQuestion = JsonSerializer.Serialize(questions);
+                Game game = repository.PostGame();
+                foreach (User u in users)
+                {
+                    string jsonGame = "Game" + JsonSerializer.Serialize(game);
+                    rcvBufferName = Encoding.UTF8.GetBytes(jsonGame);
+                    await u.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
+                }
                 foreach (User u in users) 
                 {
+
                     rcvBufferName = Encoding.UTF8.GetBytes(jsonQuestion);
                     await u.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
                 }

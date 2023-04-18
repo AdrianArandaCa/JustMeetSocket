@@ -44,7 +44,7 @@ namespace JustMeetSocket.Model
         {
             List<Question> questions = null;
             questions = (List<Question>)MakeRequest(string.Concat(ws, "questions"), null, "GET", "application/json", typeof(List<Question>));
-            questions = questions.Where(a => a.idGameType == gameType.idGameType).OrderBy(a => random.Next()).Take(5).ToList();
+            questions = questions.Where(a => a.idGameType == gameType.idGameType).OrderBy(a => random.Next()).Take(2).ToList();
             for (var i = 0; i < questions.Count; i++)
             {
                 questions[i].answers = GetAnswersFromQuestion(questions[i].idQuestion);
@@ -73,6 +73,22 @@ namespace JustMeetSocket.Model
             gameType = (GameType)MakeRequest(string.Concat(ws, "gameType/", id), null, "GET", "application/json", typeof(GameType));
             return gameType;
         }
+
+        public Game PostGame()
+        {
+            string date = DateTime.Today.ToString("yyyy-MM-dd");
+            Game game = new Game(0, date, false);
+            Game gamePost = (Game)MakeRequest(string.Concat(ws, "game"),
+                game, "POST", "application/json", typeof(Game));
+            return gamePost;
+        }
+
+        //public User PostUser(User user)
+        //{
+        //    User userPost = (User)MakeRequest(string.Concat(ws, "user/"),
+        //        user, "POST", "application/json", typeof(User));
+        //    return userPost;
+        //}
 
         public static object MakeRequest(string requestUrl, object JSONRequest, string JSONmethod, string JSONContentType, Type JSONResponseType)
         {
