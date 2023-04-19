@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System.Collections.Generic;
 using System.Net;
 using System.Text;
 
@@ -8,6 +9,9 @@ namespace JustMeetSocket.Model
     {
         string ws = "https://172.16.24.123:45455/api/";
         Random random = new Random();
+        int totalQuestions;
+        List<int?> user1Answers = new List<int?>();
+        List<int?> user2Answers = new List<int?>();
 
         public List<User> GetUsers() 
         {
@@ -73,22 +77,62 @@ namespace JustMeetSocket.Model
             gameType = (GameType)MakeRequest(string.Concat(ws, "gameType/", id), null, "GET", "application/json", typeof(GameType));
             return gameType;
         }
-
+        public Game GetGame(int id)
+        {
+            Game game = null;
+            game = (Game)MakeRequest(string.Concat(ws, "game/", id), null, "GET", "application/json", typeof(Game));
+            //setting.gameType = GetGameTypeFromSetting((int)setting.idGameType);
+            return game;
+        }
         public Game PostGame()
         {
             string date = DateTime.Today.ToString("yyyy-MM-dd");
-            Game game = new Game(0, date, false);
+            Game game = new Game(0, date, false, 0);
             Game gamePost = (Game)MakeRequest(string.Concat(ws, "game"),
                 game, "POST", "application/json", typeof(Game));
             return gamePost;
         }
 
-        //public User PostUser(User user)
-        //{
-        //    User userPost = (User)MakeRequest(string.Concat(ws, "user/"),
-        //        user, "POST", "application/json", typeof(User));
-        //    return userPost;
-        //}
+        public List<UserAnswer> UserAnswerFromGame (int idGame) {
+            List<UserAnswer> listUserAnswer = null;
+            listUserAnswer = (List<UserAnswer>)MakeRequest(string.Concat(ws, "userAnswerFromGame/", idGame), null, "GET", "application/json", typeof(List<UserAnswer>));
+            return listUserAnswer;
+        }
+
+        public List<User> GetUsersFromGame(Game game) 
+        {
+            List<User> users = null;
+            users = (List<User>)MakeRequest(string.Concat(ws, "usersFromGame/", game.idGame), null, "GET", "application/json", typeof(List<User>));
+            return users;
+        }
+
+        public Game PutGame(Game game) 
+        {
+            Game gamePut= (Game)MakeRequest(string.Concat(ws, "game/", game.idGame),
+                game, "PUT", "application/json", typeof(Game));
+            return gamePut;
+        }
+
+        public Game GetGameResume(Game game)
+        {
+            List<User> users = GetUsersFromGame(game);
+            List<UserAnswer> listUserAnswer = UserAnswerFromGame((int)game.idGame);
+            totalQuestions = listUserAnswer.Count / 2;
+            user1Answers = listUserAnswer.Where(x => x.idUser == users[0].idUser).Select(x => x.idAnswer).ToList();
+            user2Answers = listUserAnswer.Where(x => x.idUser == users[1].idUser).Select(x => x.idAnswer).ToList();
+            List<int?> listEqualAnswers = user1Answers.Intersect(user2Answers).ToList();
+            float result = (listEqualAnswers.Count / totalQuestions) * 100;
+            game.percentage = result;
+            if (result >= ((double)totalQuestions / 2))
+            {
+                game.match = true;
+            }
+            else 
+            {
+                game.match = false;
+            }
+            return PutGame(game);
+        }
 
         public static object MakeRequest(string requestUrl, object JSONRequest, string JSONmethod, string JSONContentType, Type JSONResponseType)
         {
