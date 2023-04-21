@@ -12,6 +12,7 @@ var builder = WebApplication.CreateBuilder();
 int maxUsersConnected = 1;
 int minUsersConnected = 1;
 int usersConnected = 0;
+int usersConnectedMatch = 0;
 byte[] rcvBufferName;
 var rcvBytes = new byte[256];
 var cts = new CancellationTokenSource();
@@ -22,6 +23,7 @@ Game game = new Game();
 List<Question> questions;
 GameType gameType = new GameType();
 List<User> users = new List<User>();
+List<User> usersMatch = new List<User>();
 builder.WebHost.UseUrls("http://172.16.24.123:45456");
 var app = builder.Build();
 
@@ -50,14 +52,32 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
                 Thread playGame = new Thread(new ThreadStart(() => startGame(users)));
                 playGame.Start();
                 playGame.Join();
-                users.RemoveRange(0, maxUsersConnected);
-                usersConnected = 0;
+                //users.RemoveRange(0, maxUsersConnected);
+                //usersConnected = 0;
             }
+
             while (true)
             {
                 WebSocketReceiveResult rcvResult = await webSocket.ReceiveAsync(rcvBuffer, cts.Token);
                 byte[] msgBytes = rcvBuffer.Take(rcvResult.Count).ToArray();
                 text = System.Text.Encoding.UTF8.GetString(msgBytes);
+                if (text.StartsWith("GAMERESULT"))
+                {
+                    var textParse = Int32.Parse(text.Substring(10));
+                    game = repository.GetGame(textParse);
+                    usersConnectedMatch++;
+                    Game gameResume = repository.GetGameResume(game);
+                    foreach (User u in users)
+                    {
+                        string jsonGame = "GAMERESULT" + JsonSerializer.Serialize(gameResume);
+                        rcvBufferName = Encoding.UTF8.GetBytes(jsonGame);
+                        await u.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
+                    }
+                    //Thread matchGame = new Thread(new ThreadStart(() => matchUsers(users, game)));
+                    //matchGame.Start();
+                    //matchGame.Join();
+
+                }
             }
         }
     }
@@ -84,50 +104,12 @@ async void startGame(List<User> usersPlay)
 
 }
 
-var appGame = builder.Build();
-appGame.UseWebSockets();
-appGame.Map("/ws/{idUser}/{idGame}", async (int idUser, int idGame, HttpContext context) =>
-{
-    if (context.WebSockets.IsWebSocketRequest)
-    {
-        using (var webSocket = await context.WebSockets.AcceptWebSocketAsync())
-        {
-
-            if (usersConnected < maxUsersConnected)
-            {
-                User user = repository.GetUser(idUser);
-                user.socket = webSocket;
-                users.Add(user);
-                game = repository.GetGame(idGame);
-                usersConnected++;
-            }
-
-            if (usersConnected == maxUsersConnected)
-            {
-                Thread matchGame = new Thread(new ThreadStart(() => matchUsers(users, game.match)));
-                matchGame.Start();
-                matchGame.Join();
-                users.RemoveRange(0, maxUsersConnected);
-                usersConnected = 0;
-            }
-            while (true)
-            {
-                WebSocketReceiveResult rcvResult = await webSocket.ReceiveAsync(rcvBuffer, cts.Token);
-                byte[] msgBytes = rcvBuffer.Take(rcvResult.Count).ToArray();
-                text = System.Text.Encoding.UTF8.GetString(msgBytes);
-            }
-        }
-    }
-});
-
-await appGame.RunAsync();
-
-async void matchUsers(List<User> userMatch, bool match)
+async void matchUsers(List<User> userMatch, Game game)
 {
     Game gameResume = repository.GetGameResume(game);
     foreach (User u in userMatch)
     {
-        string jsonGame = JsonSerializer.Serialize(gameResume);
+        string jsonGame = "GAMERESULT" + JsonSerializer.Serialize(gameResume);
         rcvBufferName = Encoding.UTF8.GetBytes(jsonGame);
         await u.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
     }
