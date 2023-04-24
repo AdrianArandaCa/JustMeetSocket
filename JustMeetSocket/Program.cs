@@ -1,5 +1,6 @@
 using System.Net.WebSockets;
 using System.Net;
+using Microsoft.AspNetCore.Http;
 using System.Text;
 using JustMeetSocket.Model;
 using Newtonsoft.Json;
@@ -9,12 +10,13 @@ using System.Runtime.CompilerServices;
 
 Console.Title = "JustMeetWebSocket";
 var builder = WebApplication.CreateBuilder();
-int maxUsersConnected = 1;
+int maxUsersConnected = 2;
 int minUsersConnected = 1;
 int usersConnected = 0;
 int usersConnectedMatch = 0;
 byte[] rcvBufferName;
 var rcvBytes = new byte[256];
+Random random = new Random();
 var cts = new CancellationTokenSource();
 ArraySegment<byte> rcvBuffer = new ArraySegment<byte>(rcvBytes);
 string text;
@@ -24,6 +26,8 @@ List<Question> questions;
 GameType gameType = new GameType();
 List<User> users = new List<User>();
 List<User> usersMatch = new List<User>();
+List<string> queue = new List<string>();
+var gameresult = 0;
 builder.WebHost.UseUrls("http://172.16.24.123:45456");
 var app = builder.Build();
 
@@ -52,38 +56,42 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
                 Thread playGame = new Thread(new ThreadStart(() => startGame(users)));
                 playGame.Start();
                 playGame.Join();
-                //users.RemoveRange(0, maxUsersConnected);
-                //usersConnected = 0;
+                usersMatch.AddRange(users);
+                users.Clear();
+                usersConnected = 0;
             }
 
-            while (true)
+            while (webSocket.State == WebSocketState.Open)
             {
                 WebSocketReceiveResult rcvResult = await webSocket.ReceiveAsync(rcvBuffer, cts.Token);
                 byte[] msgBytes = rcvBuffer.Take(rcvResult.Count).ToArray();
                 text = System.Text.Encoding.UTF8.GetString(msgBytes);
+
                 if (text.StartsWith("GAMERESULT"))
                 {
                     var textParse = Int32.Parse(text.Substring(10));
-                    game = repository.GetGame(textParse);
-                    usersConnectedMatch++;
-                    Game gameResume = repository.GetGameResume(game);
-                    foreach (User u in users)
-                    {
-                        string jsonGame = "GAMERESULT" + JsonSerializer.Serialize(gameResume);
-                        rcvBufferName = Encoding.UTF8.GetBytes(jsonGame);
-                        await u.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
-                    }
-                    //Thread matchGame = new Thread(new ThreadStart(() => matchUsers(users, game)));
-                    //matchGame.Start();
-                    //matchGame.Join();
-
+                    Game gameFromUser = repository.GetGame(textParse);
+                    List<User> usersGameFinish = new List<User>();
+                    usersGameFinish.AddRange(usersMatch);
+                    
+                    Thread matchGame = new Thread(new ThreadStart(() => matchUsers(usersMatch, gameFromUser)));
+                    matchGame.Start();
+                    matchGame.Join();
+                    usersGameFinish.Clear();
+                    usersMatch.Clear();
                 }
+                if (text.Equals("CLOSE")) 
+                {
+                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Servidor cerrando la conexión", CancellationToken.None);
+                }
+
             }
         }
     }
 });
 
 await app.RunAsync();
+cts.Dispose();
 
 async void startGame(List<User> usersPlay)
 {
@@ -101,13 +109,12 @@ async void startGame(List<User> usersPlay)
         rcvBufferName = Encoding.UTF8.GetBytes(jsonQuestion);
         await u.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
     }
-
 }
 
-async void matchUsers(List<User> userMatch, Game game)
+async Task matchUsers(List<User> usersGameFinish2, Game game)
 {
     Game gameResume = repository.GetGameResume(game);
-    foreach (User u in userMatch)
+    foreach (User u in usersGameFinish2)
     {
         string jsonGame = "GAMERESULT" + JsonSerializer.Serialize(gameResume);
         rcvBufferName = Encoding.UTF8.GetBytes(jsonGame);

@@ -117,9 +117,13 @@ namespace JustMeetSocket.Model
             float result = 0;
             List<User> users = GetUsersFromGame(game);
             List<UserAnswer> listUserAnswer = UserAnswerFromGame((int)game.idGame);
+            List<int?> user2Answers = new List<int?>();
             totalQuestions = listUserAnswer.Count / 2;
             List<int?> user1Answers = listUserAnswer.Where(x => x.idUser == users[0].idUser).Select(x => x.idAnswer).ToList();
-            List<int?> user2Answers = listUserAnswer.Where(x => x.idUser == users[1].idUser).Select(x => x.idAnswer).ToList();
+            if (users.Count > 1) {
+                user2Answers = listUserAnswer.Where(x => x.idUser == users[1].idUser).Select(x => x.idAnswer).ToList();
+            }
+            
             List<int?> listEqualAnswers = new List<int?>();
             for (var i = 0; i < user1Answers.Count; i++) 
             {
