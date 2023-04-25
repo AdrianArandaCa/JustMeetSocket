@@ -150,6 +150,14 @@ namespace JustMeetSocket.Model
             return newGame;
         }
 
+        public List<User> GetUsersFromGameWithMatch(User user)
+        {
+            List<User> users = null;
+            users = (List<User>)MakeRequest(string.Concat(ws, "userGameList/", user.idUser), null, "GET", "application/json", typeof(List<User>));
+            return users;
+        }
+
+
         public static object MakeRequest(string requestUrl, object JSONRequest, string JSONmethod, string JSONContentType, Type JSONResponseType)
         {
             try

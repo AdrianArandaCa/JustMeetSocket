@@ -8,7 +8,7 @@ namespace JustMeetSocket.Model
         public string? name { get; set; }
         public string? password { get; set; }
         public string? email { get; set; }
-        public string? birthday { get; set; }
+        public int? birthday { get; set; }
         public string? genre { get; set; }
         public string? photo { get; set; }
         public string? description { get; set; }
