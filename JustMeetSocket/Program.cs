@@ -50,7 +50,6 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
 
             if (usersConnected == maxUsersConnected)
             {
-                List<float> ages = new List<float>();
                 List<Setting> settings = new List<Setting>();
                 List<User> userDesconect = new List<User>();
                 userDesconect.AddRange(users);
@@ -62,12 +61,12 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
 
                 if (settings[0].genre == users[1].genre && settings[1].genre == users[0].genre)
                 {
-                    if ((settings[0].minAge <= users[1].birthday && settings[0].maxAge >= users[1].birthday)
-                    && (settings[1].minAge <= users[0].birthday && settings[1].maxAge >= users[0].birthday))
+                    if ((users[1].birthday >= settings[0].minAge && users[1].birthday <= settings[0].maxAge)
+                && (users[0].birthday >= settings[1].minAge && users[0].birthday <= settings[1].maxAge))
                     {
                         List<User> usersWithMatch = new List<User>();
                         usersWithMatch = repository.GetUsersFromGameWithMatch(users[0]);
-                        if (!usersWithMatch.Any(x=>x.idUser == users[1].idUser))
+                        if (!usersWithMatch.Any(x => x.idUser == users[1].idUser))
                         {
                             Thread playGame = new Thread(new ThreadStart(() => startGame(users)));
                             playGame.Start();
@@ -79,22 +78,16 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
                         else
                         {
                             closeSocket("CLOSEMATCH", userDesconect);
-                            users.Clear();
-                            usersConnected = 0;
                         }
                     }
                     else
                     {
                         closeSocket("CLOSEAGE", userDesconect);
-                        users.Clear();
-                        usersConnected = 0;
                     }
                 }
                 else
                 {
                     closeSocket("CLOSEGENRE", userDesconect);
-                    users.Clear();
-                    usersConnected = 0;
                 }
             }
 
@@ -119,7 +112,16 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
                 }
                 if (text.Equals("CLOSE"))
                 {
-                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Servidor cerrando la conexión", CancellationToken.None);
+                    if (users.Any(x => x.socket == webSocket))
+                    {
+                        User userToDesconnect = users.Where(a => a.socket == webSocket).FirstOrDefault();
+                        if (userToDesconnect != null) {
+                            users.Remove(userToDesconnect);
+                            usersConnected--;
+                            await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Servidor cerrando la conexión", CancellationToken.None);
+                        }
+                    }
+
                 }
 
             }
@@ -166,5 +168,7 @@ async void closeSocket(string txt, List<User> userList)
     {
         await user.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
     }
+    users.Clear();
+    usersConnected = 0;
 
 }
