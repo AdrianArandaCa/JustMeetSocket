@@ -10,14 +10,8 @@ namespace JustMeetSocket.Model
         string ws = "https://172.16.24.123:45455/api/";
         Random random = new Random();
         int totalQuestions;
-
-        public List<User> GetUsers() 
-        {
-            List<User> users = null;
-            users = (List<User>)MakeRequest(string.Concat(ws, "users"), null, "GET", "application/json", typeof(List<User>));
-            return users;
-        }
-
+        
+        //User
         public User GetUser(int id)
         {
             User user = null;
@@ -25,23 +19,28 @@ namespace JustMeetSocket.Model
             return user;
         }
 
-        public User PostUser(User user)
+        public List<User> GetUsersFromGameWithMatch(User user)
         {
-            User userPost = (User)MakeRequest(string.Concat(ws, "user/"),
-                user, "POST", "application/json", typeof(User));
-            return userPost;
-        }
-        public List<Question> GetQuestions()
-        {
-            List<Question> questions = null;
-            questions = (List<Question>)MakeRequest(string.Concat(ws, "questions"), null, "GET", "application/json", typeof(List<Question>));
-            for (var i = 0; i < questions.Count; i++)
-            {
-                questions[i].answers = GetAnswersFromQuestion(questions[i].idQuestion);
-            }
-            return questions;
+            List<User> users = null;
+            users = (List<User>)MakeRequest(string.Concat(ws, "userGameList/", user.idUser), null, "GET", "application/json", typeof(List<User>));
+            return users;
         }
 
+        public List<User> GetUsersFromGame(Game game)
+        {
+            List<User> users = null;
+            users = (List<User>)MakeRequest(string.Concat(ws, "usersFromGame/", game.idGame), null, "GET", "application/json", typeof(List<User>));
+            return users;
+        }
+
+        public Location GetLocationByUser(User user)
+        {
+            Location location = null;
+            location = (Location)MakeRequest(string.Concat(ws, "locationByUser/", user.idUser), null, "GET", "application/json", typeof(Location));
+            return location;
+        }
+
+        //Question
         public List<Question> GetQuestionsByGameType(GameType gameType)
         {
             List<Question> questions = null;
@@ -60,27 +59,13 @@ namespace JustMeetSocket.Model
             answers = (List<Answer>)MakeRequest(string.Concat(ws, "questionWithAnswer/", id), null, "GET", "application/json", typeof(List<Answer>));
             return answers;
         }
-
-        public Setting GetSetting(int id) 
-        {
-            Setting setting = null;
-            setting = (Setting)MakeRequest(string.Concat(ws, "setting/", id), null, "GET", "application/json", typeof(Setting));
-            //setting.gameType = GetGameTypeFromSetting((int)setting.idGameType);
-            return setting;
-        }
-
-        public GameType GetGameTypeFromSetting(int id)
-        {
-            GameType gameType = null;
-            gameType = (GameType)MakeRequest(string.Concat(ws, "gameType/", id), null, "GET", "application/json", typeof(GameType));
-            return gameType;
-        }
+        
+        //Game
         public Game GetGame(int id)
         {
             Game game = null;
             game = (Game)MakeRequest(string.Concat(ws, "game/", id), null, "GET", "application/json", typeof(Game));
             game.registrationDate = game.registrationDate.Substring(0, 10);
-            //setting.gameType = GetGameTypeFromSetting((int)setting.idGameType);
             return game;
         }
         public Game PostGame()
@@ -90,20 +75,7 @@ namespace JustMeetSocket.Model
             Game gamePost = (Game)MakeRequest(string.Concat(ws, "game"),
                 game, "POST", "application/json", typeof(Game));
             return gamePost;
-        }
-
-        public List<UserAnswer> UserAnswerFromGame (int idGame) {
-            List<UserAnswer> listUserAnswer = null;
-            listUserAnswer = (List<UserAnswer>)MakeRequest(string.Concat(ws, "userAnswerFromGame/", idGame), null, "GET", "application/json", typeof(List<UserAnswer>));
-            return listUserAnswer;
-        }
-
-        public List<User> GetUsersFromGame(Game game) 
-        {
-            List<User> users = null;
-            users = (List<User>)MakeRequest(string.Concat(ws, "usersFromGame/", game.idGame), null, "GET", "application/json", typeof(List<User>));
-            return users;
-        }
+        }      
 
         public Game PutGame(Game game) 
         {
@@ -150,14 +122,12 @@ namespace JustMeetSocket.Model
                 
             return newGame;
         }
-
-        public List<User> GetUsersFromGameWithMatch(User user)
+        public List<UserAnswer> UserAnswerFromGame(int idGame)
         {
-            List<User> users = null;
-            users = (List<User>)MakeRequest(string.Concat(ws, "userGameList/", user.idUser), null, "GET", "application/json", typeof(List<User>));
-            return users;
+            List<UserAnswer> listUserAnswer = null;
+            listUserAnswer = (List<UserAnswer>)MakeRequest(string.Concat(ws, "userAnswerFromGame/", idGame), null, "GET", "application/json", typeof(List<UserAnswer>));
+            return listUserAnswer;
         }
-
 
         public static object MakeRequest(string requestUrl, object JSONRequest, string JSONmethod, string JSONContentType, Type JSONResponseType)
         {
@@ -165,11 +135,11 @@ namespace JustMeetSocket.Model
             {
                 HttpWebRequest request = WebRequest.Create(requestUrl) as HttpWebRequest;
                 string sb = JsonConvert.SerializeObject(JSONRequest);
-                request.Method = JSONmethod;  // "GET"/"POST"/"PUT"/"DELETE";  
+                request.Method = JSONmethod; 
 
                 if (JSONmethod != "GET")
                 {
-                    request.ContentType = JSONContentType; // "application/json";   
+                    request.ContentType = JSONContentType;  
                     Byte[] bt = Encoding.UTF8.GetBytes(sb);
                     Stream st = request.GetRequestStream();
                     st.Write(bt, 0, bt.Length);
@@ -194,5 +164,47 @@ namespace JustMeetSocket.Model
                 return null;
             }
         }
+
+        //Discard
+
+        //public User PostUser(User user)
+        //{
+        //    User userPost = (User)MakeRequest(string.Concat(ws, "user/"),
+        //        user, "POST", "application/json", typeof(User));
+        //    return userPost;
+        //}
+
+        //public Setting GetSetting(int id)
+        //{
+        //    Setting setting = null;
+        //    setting = (Setting)MakeRequest(string.Concat(ws, "setting/", id), null, "GET", "application/json", typeof(Setting));
+        //    //setting.gameType = GetGameTypeFromSetting((int)setting.idGameType);
+        //    return setting;
+        //}
+
+        //public List<Question> GetQuestions()
+        //{
+        //    List<Question> questions = null;
+        //    questions = (List<Question>)MakeRequest(string.Concat(ws, "questions"), null, "GET", "application/json", typeof(List<Question>));
+        //    for (var i = 0; i < questions.Count; i++)
+        //    {
+        //        questions[i].answers = GetAnswersFromQuestion(questions[i].idQuestion);
+        //    }
+        //    return questions;
+        //}
+
+        //public GameType GetGameTypeFromSetting(int id)
+        //{
+        //    GameType gameType = null;
+        //    gameType = (GameType)MakeRequest(string.Concat(ws, "gameType/", id), null, "GET", "application/json", typeof(GameType));
+        //    return gameType;
+        //}
+
+        //public List<User> GetUsers() 
+        //{
+        //    List<User> users = null;
+        //    users = (List<User>)MakeRequest(string.Concat(ws, "users"), null, "GET", "application/json", typeof(List<User>));
+        //    return users;
+        //}
     }
 }
