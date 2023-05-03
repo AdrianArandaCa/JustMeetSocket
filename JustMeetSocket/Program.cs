@@ -3,6 +3,7 @@ using System.Text;
 using JustMeetSocket.Model;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 using System.Globalization;
+using static System.Net.Mime.MediaTypeNames;
 
 Console.Title = "JustMeetWebSocket";
 var builder = WebApplication.CreateBuilder();
@@ -56,9 +57,21 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
                 text = System.Text.Encoding.UTF8.GetString(msgBytes);
                 if (text.StartsWith("CHAT"))
                 {
-                    var textParse = Int32.Parse(text.Substring(4));
-                    User userChat = repository.GetUser(textParse);
+                    var idUserToChatting = Int32.Parse(text.Substring(4));
+                    var idUserLocal = user.idUser;
+                    string tokenChat = idUserLocal.ToString() + "," + idUserToChatting.ToString();
+                    user.token = tokenChat;
+                    //User userChat = repository.GetUser(idUserToChatting);
                     usersChating.Add(user);
+                    string userTokenToConnect = getToken(user);
+                    foreach (var userGame in usersChating)
+                    {
+                        if (userGame.token.Equals(userTokenToConnect))
+                        {
+                            rcvBufferName = Encoding.UTF8.GetBytes("USERCONNECT" + userGame.name);
+                            await userGame.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
+                        }
+                    }
 
                     while (webSocket.State == WebSocketState.Open)
                     {
@@ -69,24 +82,35 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
                         {
                             if (usersChating.Any(x => x.socket == webSocket))
                             {
-                                User userToDesconnect = users.Where(a => a.socket == webSocket).FirstOrDefault();
+                                User userToDesconnect = usersChating.Where(a => a.socket == webSocket).FirstOrDefault();
                                 if (userToDesconnect != null)
                                 {
+                                    string userTokenToDesconnect = getToken(userToDesconnect);
                                     usersChating.Remove(userToDesconnect);
                                     usersConnected--;
+                                    
+                                    foreach (var userGame in usersChating)
+                                    {
+                                        if (userGame.token.Equals(userTokenToDesconnect))
+                                        {
+                                            rcvBufferName = Encoding.UTF8.GetBytes("USERLEAVE" + userToDesconnect.name);
+                                            await userGame.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
+                                        }
+                                    }
                                     await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Servidor cerrando la conexión", CancellationToken.None);
                                 }
                             }
                         }
+                        User userSend = usersChating.Where(a => a.socket == webSocket).FirstOrDefault();
+                        string userTokenToSend = getToken(userSend);
                         foreach (var userGame in usersChating)
                         {
-                            if (userGame.socket != webSocket)
+                            if (userGame.token.Equals(userTokenToSend))
                             {
                                 await userGame.socket.SendAsync(msgBytesChat, WebSocketMessageType.Text, true, CancellationToken.None);
                             }
                         }
                     }
-
                 }
 
                 if (text.StartsWith("STARTGAME"))
@@ -208,4 +232,17 @@ async void closeSocket(string txt, List<User> userList)
     users.Clear();
     usersWaiting.Clear();
     usersConnected = 0;
+}
+
+string getToken(User userSend)
+{
+    var tokenSepared = userSend.token.Split(",");
+    int user1 = Convert.ToInt32(tokenSepared[0]);
+    int user2 = Convert.ToInt32(tokenSepared[1]);
+
+    int temp = user1;
+    user1 = user2;
+    user2 = temp;
+    return $"{user1},{user2}";
+
 }

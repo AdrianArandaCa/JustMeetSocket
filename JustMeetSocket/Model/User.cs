@@ -15,6 +15,7 @@ namespace JustMeetSocket.Model
         public bool premium { get; set; }
         public int? idSetting { get; set; }
         public WebSocket socket { get; set; }
+        public string token { get; set; }
         public Setting idSettingNavigation { get; set; }
         public Location? Locations { get; set; }
     }
