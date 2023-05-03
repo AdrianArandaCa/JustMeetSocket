@@ -46,7 +46,7 @@ namespace JustMeetSocket.Model
         {
             List<Question> questions = null;
             questions = (List<Question>)MakeRequest(string.Concat(ws, "questions"), null, "GET", "application/json", typeof(List<Question>));
-            questions = questions.Where(a => a.idGameType == gameType.idGameType).OrderBy(a => random.Next()).Take(2).ToList();
+            questions = questions.Where(a => a.idGameType == gameType.idGameType).OrderBy(a => random.Next()).Take(4).ToList();
             for (var i = 0; i < questions.Count; i++)
             {
                 questions[i].answers = GetAnswersFromQuestion(questions[i].idQuestion);
@@ -114,7 +114,7 @@ namespace JustMeetSocket.Model
 
         public Game GetGameResume(Game game)
         {
-            float result = 0;
+            double result = 0;
             List<User> users = GetUsersFromGame(game);
             List<UserAnswer> listUserAnswer = UserAnswerFromGame((int)game.idGame);
             List<int?> user2Answers = new List<int?>();
@@ -127,13 +127,14 @@ namespace JustMeetSocket.Model
             List<int?> listEqualAnswers = new List<int?>();
             for (var i = 0; i < user1Answers.Count; i++) 
             {
-                if (user1Answers[i] == user2Answers[i]) 
+                if (user1Answers[i] == user2Answers[i] && (user1Answers[i] != null || user2Answers[i] != null)) 
                 {
                     listEqualAnswers.Add(user1Answers[i]);
                 }
             }
+            var count = listEqualAnswers.Count;
             if (totalQuestions != 0) {
-                result = (listEqualAnswers.Count / totalQuestions) * 100;
+                result = ((Convert.ToSingle(count) / Convert.ToSingle(totalQuestions)) * 100);
             }
             game.percentage = result;
             if (result >= ((double)totalQuestions / 2))

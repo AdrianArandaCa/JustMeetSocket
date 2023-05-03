@@ -16,12 +16,15 @@ Random random = new Random();
 var cts = new CancellationTokenSource();
 ArraySegment<byte> rcvBuffer = new ArraySegment<byte>(rcvBytes);
 string text;
+string textChat;
 Repository repository = new Repository();
 Game game = new Game();
 List<Question> questions;
 GameType gameType = new GameType();
 List<User> users = new List<User>();
 List<User> usersMatch = new List<User>();
+List<User> usersChating = new List<User>();
+List<User> usersWaiting = new List<User>();
 var gameresult = 0;
 builder.WebHost.UseUrls("http://172.16.24.123:45456");
 var app = builder.Build();
@@ -34,69 +37,103 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
     {
         using (var webSocket = await context.WebSockets.AcceptWebSocketAsync())
         {
-            //gametype, minAge, maxAge, hombre o mujer y si han sido match, no pueden jugar.
-            if (usersConnected < maxUsersConnected)
+            //if (usersConnected < maxUsersConnected)
+            //{
+            User user = repository.GetUser(idUser);
+            user.socket = webSocket;
+            users.Add(user);
+            usersConnected++;
+            if (usersConnected == 1)
             {
-                User user = repository.GetUser(idUser);
-                //List<User> usersproba = repository.GetUsers();
-                user.socket = webSocket;
-                users.Add(user);
-                usersConnected++;
-                if (usersConnected == 1)
-                {
-                    gameType = user.idSettingNavigation.IdGametypeNavigation;
-                }
+                gameType = user.idSettingNavigation.IdGametypeNavigation;
             }
-
-            if (usersConnected == maxUsersConnected)
-            {
-                List<Setting> settings = new List<Setting>();
-                List<User> userDesconect = new List<User>();
-                userDesconect.AddRange(users);
-
-                foreach (var user in users)
-                {
-                    settings.Add(user.idSettingNavigation);
-                }
-
-                if (settings[0].genre == users[1].genre && settings[1].genre == users[0].genre)
-                {
-                    if ((users[1].birthday >= settings[0].minAge && users[1].birthday <= settings[0].maxAge)
-                && (users[0].birthday >= settings[1].minAge && users[0].birthday <= settings[1].maxAge))
-                    {
-                        List<User> usersWithMatch = new List<User>();
-                        usersWithMatch = repository.GetUsersFromGameWithMatch(users[0]);
-                        if (!usersWithMatch.Any(x => x.idUser == users[1].idUser))
-                        {
-                            Thread playGame = new Thread(new ThreadStart(() => startGame(users)));
-                            playGame.Start();
-                            playGame.Join();
-                            usersMatch.AddRange(users);
-                            users.Clear();
-                            usersConnected = 0;
-                        }
-                        else
-                        {
-                            closeSocket("CLOSEMATCH", userDesconect);
-                        }
-                    }
-                    else
-                    {
-                        closeSocket("CLOSEAGE", userDesconect);
-                    }
-                }
-                else
-                {
-                    closeSocket("CLOSEGENRE", userDesconect);
-                }
-            }
+            //}
 
             while (webSocket.State == WebSocketState.Open)
             {
                 WebSocketReceiveResult rcvResult = await webSocket.ReceiveAsync(rcvBuffer, cts.Token);
                 byte[] msgBytes = rcvBuffer.Take(rcvResult.Count).ToArray();
                 text = System.Text.Encoding.UTF8.GetString(msgBytes);
+                if (text.StartsWith("CHAT"))
+                {
+                    var textParse = Int32.Parse(text.Substring(4));
+                    User userChat = repository.GetUser(textParse);
+                    usersChating.Add(user);
 
+                    while (webSocket.State == WebSocketState.Open)
+                    {
+                        WebSocketReceiveResult rcvResultChat = await webSocket.ReceiveAsync(rcvBuffer, cts.Token);
+                        byte[] msgBytesChat = rcvBuffer.Take(rcvResultChat.Count).ToArray();
+                        textChat = System.Text.Encoding.UTF8.GetString(msgBytesChat);
+                        if (textChat.Equals("CLOSE"))
+                        {
+                            if (usersChating.Any(x => x.socket == webSocket))
+                            {
+                                User userToDesconnect = users.Where(a => a.socket == webSocket).FirstOrDefault();
+                                if (userToDesconnect != null)
+                                {
+                                    usersChating.Remove(userToDesconnect);
+                                    usersConnected--;
+                                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Servidor cerrando la conexión", CancellationToken.None);
+                                }
+                            }
+                        }
+                        foreach (var userGame in usersChating)
+                        {
+                            if (userGame.socket != webSocket)
+                            {
+                                await userGame.socket.SendAsync(msgBytesChat, WebSocketMessageType.Text, true, CancellationToken.None);
+                            }
+                        }
+                    }
+
+                }
+
+                if (text.StartsWith("STARTGAME"))
+                {
+                    usersWaiting.Add(user);
+                    if (usersWaiting.Count == 2)
+                    {
+                        List<Setting> settings = new List<Setting>();
+                        List<User> userDesconect = new List<User>();
+                        userDesconect.AddRange(usersWaiting);
+
+                        foreach (var userGame in usersWaiting)
+                        {
+                            settings.Add(userGame.idSettingNavigation);
+                        }
+
+                        if (settings[0].genre == usersWaiting[1].genre && settings[1].genre == usersWaiting[0].genre)
+                        {
+                            if ((usersWaiting[1].birthday >= settings[0].minAge && usersWaiting[1].birthday <= settings[0].maxAge)
+                        && (usersWaiting[0].birthday >= settings[1].minAge && usersWaiting[0].birthday <= settings[1].maxAge))
+                            {
+                                List<User> usersWithMatch = new List<User>();
+                                usersWithMatch = repository.GetUsersFromGameWithMatch(usersWaiting[0]);
+                                //if (!usersWithMatch.Any(x => x.idUser == users[1].idUser))
+                                //{
+                                Thread playGame = new Thread(new ThreadStart(() => startGame(usersWaiting)));
+                                playGame.Start();
+                                playGame.Join();
+                                usersMatch.AddRange(usersWaiting);
+                                usersWaiting.Clear();
+                                //}
+                                //else
+                                //{
+                                //    closeSocket("CLOSEMATCH", userDesconect);
+                                //}
+                            }
+                            else
+                            {
+                                closeSocket("CLOSEAGE", userDesconect);
+                            }
+                        }
+                        else
+                        {
+                            closeSocket("CLOSEGENRE", userDesconect);
+                        }
+                    }
+                }
                 if (text.StartsWith("GAMERESULT"))
                 {
                     var textParse = Int32.Parse(text.Substring(10));
@@ -109,21 +146,21 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
                     matchGame.Join();
                     usersGameFinish.Clear();
                     usersMatch.Clear();
+                    usersWaiting.Clear();
                 }
                 if (text.Equals("CLOSE"))
                 {
                     if (users.Any(x => x.socket == webSocket))
                     {
                         User userToDesconnect = users.Where(a => a.socket == webSocket).FirstOrDefault();
-                        if (userToDesconnect != null) {
+                        if (userToDesconnect != null)
+                        {
                             users.Remove(userToDesconnect);
                             usersConnected--;
                             await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Servidor cerrando la conexión", CancellationToken.None);
                         }
                     }
-
                 }
-
             }
         }
     }
@@ -169,6 +206,6 @@ async void closeSocket(string txt, List<User> userList)
         await user.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
     }
     users.Clear();
+    usersWaiting.Clear();
     usersConnected = 0;
-
 }
