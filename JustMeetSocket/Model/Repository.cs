@@ -45,11 +45,11 @@ namespace JustMeetSocket.Model
         {
             List<Question> questions = null;
             questions = (List<Question>)MakeRequest(string.Concat(ws, "questions"), null, "GET", "application/json", typeof(List<Question>));
-            questions = questions.Where(a => a.idGameType == gameType.idGameType).OrderBy(a => random.Next()).Take(4).ToList();
-            for (var i = 0; i < questions.Count; i++)
-            {
-                questions[i].answers = GetAnswersFromQuestion(questions[i].idQuestion);
-            }
+            questions = questions.Where(a => a.idGameType == gameType.idGameType).OrderBy(a => random.Next()).Take(1).ToList();
+            //for (var i = 0; i < questions.Count; i++)
+            //{
+            //    questions[i].answers = GetAnswersFromQuestion(questions[i].idQuestion);
+            //}
             return questions;
         }
 
