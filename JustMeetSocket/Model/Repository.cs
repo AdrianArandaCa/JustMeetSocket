@@ -7,7 +7,8 @@ namespace JustMeetSocket.Model
 {
     public class Repository
     {
-        string ws = "https://172.16.24.123:45455/api/";
+        //string ws = "https://172.16.24.123:45455/api/"; //DISCO SDD
+        string ws = "https://172.16.24.24:45455/api/"; //DISCO HDD
         Random random = new Random();
         int totalQuestions;
         
