@@ -113,6 +113,7 @@ namespace JustMeetSocket.Model
             }
             double roundedValue = Math.Round(result, 2);
             game.percentage = roundedValue;
+            // Mirar que haga bien el match
             if (result >= ((double)totalQuestions / 2))
             {
                 game.match = true;
