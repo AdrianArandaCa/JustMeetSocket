@@ -23,7 +23,8 @@ List<User> users = new List<User>();
 List<User> usersMatch = new List<User>();
 List<User> usersChating = new List<User>();
 List<User> usersWaiting = new List<User>();
-builder.WebHost.UseUrls("http://172.16.24.123:45456");
+//builder.WebHost.UseUrls("http://172.16.24.123:45456");
+builder.WebHost.UseUrls("http://172.16.24.24:45456");
 var app = builder.Build();
 
 app.UseWebSockets();

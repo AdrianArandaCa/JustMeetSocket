@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
@@ -11,7 +12,7 @@ namespace JustMeetSocket.Model
         //string ws = "https://172.16.24.24:45455/api/"; //DISCO HDD
         string ws = "https://172.16.24.24:45455/api/";
         Random random = new Random();
-        int totalQuestions;
+        int totalQuestions = 10;
         
         //User
         public User GetUser(int id)
@@ -47,7 +48,7 @@ namespace JustMeetSocket.Model
         {
             List<Question> questions = null;
             questions = (List<Question>)MakeRequest(string.Concat(ws, "questions"), null, "GET", "application/json", typeof(List<Question>));
-            questions = questions.Where(a => a.idGameType == gameType.idGameType).OrderBy(a => random.Next()).Take(1).ToList();
+            questions = questions.Where(a => a.idGameType == gameType.idGameType).OrderBy(a => random.Next()).Take(totalQuestions).ToList();
             //for (var i = 0; i < questions.Count; i++)
             //{
             //    questions[i].answers = GetAnswersFromQuestion(questions[i].idQuestion);
@@ -110,7 +111,8 @@ namespace JustMeetSocket.Model
             if (totalQuestions != 0) {
                 result = ((Convert.ToSingle(count) / Convert.ToSingle(totalQuestions)) * 100);
             }
-            game.percentage = result;
+            double roundedValue = Math.Round(result, 2);
+            game.percentage = roundedValue;
             if (result >= ((double)totalQuestions / 2))
             {
                 game.match = true;
