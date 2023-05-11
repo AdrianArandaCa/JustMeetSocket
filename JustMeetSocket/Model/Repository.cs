@@ -12,8 +12,9 @@ namespace JustMeetSocket.Model
         //string ws = "https://172.16.24.24:45455/api/"; //DISCO HDD
         string ws = "https://172.16.24.24:45455/api/";
         Random random = new Random();
-        int totalQuestions = 10;
-        
+        int totalQuestions = 1;
+        double minMatch = 50;
+
         //User
         public User GetUser(int id)
         {
@@ -108,13 +109,17 @@ namespace JustMeetSocket.Model
                 }
             }
             var count = listEqualAnswers.Count;
-            if (totalQuestions != 0) {
+            if (totalQuestions != 0)
+            {
                 result = ((Convert.ToSingle(count) / Convert.ToSingle(totalQuestions)) * 100);
+            }
+            else {
+                result = 0.0;
             }
             double roundedValue = Math.Round(result, 2);
             game.percentage = roundedValue;
             // Mirar que haga bien el match
-            if (result >= ((double)totalQuestions / 2))
+            if (result >= minMatch )
             {
                 game.match = true;
             }

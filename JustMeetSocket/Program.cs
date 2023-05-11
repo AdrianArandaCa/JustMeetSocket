@@ -40,7 +40,25 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
             Location userLocation = repository.GetLocationByUser(user);
             user.Locations = userLocation;
             user.socket = webSocket;
-            users.Add(user);
+            if (users.Any(x => x.idUser == user.idUser))
+            {
+                User userDelete = users.Where(a => a.idUser == user.idUser).FirstOrDefault();
+                if (userDelete != null)
+                {
+                    if (user.socket.State == WebSocketState.Open)
+                    {
+                        await user.socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Servidor cerrando la conexión", CancellationToken.None);
+
+                    }
+                    users.Remove(userDelete);
+                    usersWaiting.Remove(userDelete);
+                    users.Add(user);
+                }
+                
+            }
+            else {
+                users.Add(user);
+            }
             usersConnected++;
             user.gameTypeToPlay = user.idSettingNavigation.IdGametypeNavigation;
 
@@ -138,7 +156,12 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
                         {
                             users.Remove(userToDesconnect);
                             usersConnected--;
+                            if (usersWaiting.Any(a => a.idUser == userToDesconnect.idUser))
+                            {
+                                usersWaiting.Remove(userToDesconnect);
+                            }
                             await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Servidor cerrando la conexión", CancellationToken.None);
+                            
                         }
                     }
                 }
@@ -228,13 +251,20 @@ async void startGame(List<User> usersPlay)
         //Send created game
         string jsonGame = "Game" + JsonSerializer.Serialize(game);
         rcvBufferName = Encoding.UTF8.GetBytes(jsonGame);
-        await u.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
+        if (u.socket.State == WebSocketState.Open)
+        {
+            await u.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
+        }
     }
     foreach (User u in usersPlay)
     {
         //Send questions with answers
         rcvBufferName = Encoding.UTF8.GetBytes(jsonQuestion);
-        await u.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
+        if (u.socket.State == WebSocketState.Open)
+        {
+            await u.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
+        }
+            
     }
 }
 
