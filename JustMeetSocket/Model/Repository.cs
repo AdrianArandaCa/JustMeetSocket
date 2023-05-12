@@ -12,8 +12,8 @@ namespace JustMeetSocket.Model
         //string ws = "https://172.16.24.24:45455/api/"; //DISCO HDD
         string ws = "https://172.16.24.24:45455/api/";
         Random random = new Random();
-        int totalQuestions = 1;
-        double minMatch = 50;
+        int totalQuestions = 10;
+        double minMatch = 60;
 
         //User
         public User GetUser(int id)
@@ -94,7 +94,7 @@ namespace JustMeetSocket.Model
             List<User> users = GetUsersFromGame(game);
             List<UserAnswer> listUserAnswer = UserAnswerFromGame((int)game.idGame);
             List<int?> user2Answers = new List<int?>();
-            totalQuestions = listUserAnswer.Count / 2;
+            var totalQuestionsResult = listUserAnswer.Count / 2;
             List<int?> user1Answers = listUserAnswer.Where(x => x.idUser == users[0].idUser).Select(x => x.idAnswer).ToList();
             if (users.Count > 1) {
                 user2Answers = listUserAnswer.Where(x => x.idUser == users[1].idUser).Select(x => x.idAnswer).ToList();
@@ -109,9 +109,9 @@ namespace JustMeetSocket.Model
                 }
             }
             var count = listEqualAnswers.Count;
-            if (totalQuestions != 0)
+            if (totalQuestionsResult != 0)
             {
-                result = ((Convert.ToSingle(count) / Convert.ToSingle(totalQuestions)) * 100);
+                result = ((Convert.ToSingle(count) / Convert.ToSingle(totalQuestionsResult)) * 100);
             }
             else {
                 result = 0.0;

@@ -82,7 +82,7 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
                         //Send welcome only a user with de invers token
                         if (userGame.token.Equals(userTokenToConnect))
                         {
-                            rcvBufferName = Encoding.UTF8.GetBytes("USERCONNECT" + userGame.name);
+                            rcvBufferName = Encoding.UTF8.GetBytes("USERCONNECT" + user.name);
                             await userGame.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
                         }
                     }
@@ -102,6 +102,7 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
                                 {
                                     string userTokenToDesconnect = getInversedToken(userToDesconnect);
                                     usersChating.Remove(userToDesconnect);
+                                    users.Remove(userToDesconnect);
                                     usersConnected--;
 
                                     foreach (var userGame in usersChating)
@@ -159,6 +160,11 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
                             if (usersWaiting.Any(a => a.idUser == userToDesconnect.idUser))
                             {
                                 usersWaiting.Remove(userToDesconnect);
+                            }
+                            if (usersMatch.Any(a => a.idUser == userToDesconnect.idUser))
+                            { 
+                                usersMatch.Remove(userToDesconnect);
+                                closeSocket("USERGAMELEAVE", usersMatch);
                             }
                             await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Servidor cerrando la conexión", CancellationToken.None);
                             
@@ -303,10 +309,14 @@ async void closeSocket(string txt, List<User> userList)
     rcvBufferName = Encoding.UTF8.GetBytes(txt);
     foreach (var user in userList)
     {
-        await user.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
+        if (user.socket.State == WebSocketState.Open)
+        {
+            await user.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
+        }
     }
     users.Clear();
     usersWaiting.Clear();
+    usersMatch.Clear();
     usersConnected = 0;
 }
 
