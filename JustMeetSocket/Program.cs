@@ -314,10 +314,10 @@ async void closeSocket(string txt, List<User> userList)
             await user.socket.SendAsync(rcvBufferName, WebSocketMessageType.Text, true, CancellationToken.None);
         }
     }
-    users.Clear();
-    usersWaiting.Clear();
-    usersMatch.Clear();
-    usersConnected = 0;
+    //users.Clear();
+    //usersWaiting.Clear();
+    //usersMatch.Clear();
+    //usersConnected = 0;
 }
 
 //Created inverse token
