@@ -47,7 +47,7 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
                 {
                     if (user.socket.State == WebSocketState.Open)
                     {
-                        await user.socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Servidor cerrando la conexión", CancellationToken.None);
+                        await userDelete.socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Servidor cerrando la conexión", CancellationToken.None);
 
                     }
                     users.Remove(userDelete);
@@ -161,6 +161,7 @@ app.Map("/ws/{idUser}", async (int idUser, HttpContext context) =>
                             {
                                 usersWaiting.Remove(userToDesconnect);
                             }
+                            
                             if (usersMatch.Any(a => a.idUser == userToDesconnect.idUser))
                             { 
                                 usersMatch.Remove(userToDesconnect);
