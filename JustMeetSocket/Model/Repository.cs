@@ -12,7 +12,7 @@ namespace JustMeetSocket.Model
         //string ws = "https://172.16.24.24:45455/api/"; //DISCO HDD
         string ws = "https://172.16.24.24:45455/api/";
         Random random = new Random();
-        int totalQuestions = 10;
+        int totalQuestions = 5;
         double minMatch = 60;
 
         //User

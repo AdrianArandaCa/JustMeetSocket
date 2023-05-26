@@ -212,18 +212,18 @@ void gamePrepare()
                     usersWithMatch = repository.GetUsersFromGameWithMatch(usersWaiting[0]);
 
                     //Check previous match
-                    //if (!usersWithMatch.Any(x => x.idUser == users[1].idUser))
-                    //{
-                    Thread playGame = new Thread(new ThreadStart(() => startGame(usersWaiting)));
+                    if (!usersWithMatch.Any(x => x.idUser == users[1].idUser))
+                    {
+                        Thread playGame = new Thread(new ThreadStart(() => startGame(usersWaiting)));
                     playGame.Start();
                     playGame.Join();
                     usersMatch.AddRange(usersWaiting);
                     usersWaiting.Clear();
-                    //}
-                    //else
-                    //{
-                    //    closeSocket("CLOSEMATCH", userDesconect);
-                    //}
+                    }
+                    else
+                    {
+                        closeSocket("CLOSEMATCH", userDesconect);
+                    }
                 }
                 else
                 {
